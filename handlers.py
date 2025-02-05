@@ -344,3 +344,7 @@ async def day(user):
             user['water_goal'] = water_count(user['weight'])
         else:
             user['water_goal'] = water_count(user['weight']) + 600
+
+
+def setup_handlers(dp):
+    dp.include_router(router)
