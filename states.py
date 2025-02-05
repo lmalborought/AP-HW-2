@@ -6,6 +6,7 @@ class User(StatesGroup):
     age = State()
     height = State()
     weight = State()
+    activity = State()
     city = State()
     calorie_goal = State()
 
