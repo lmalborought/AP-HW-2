@@ -30,8 +30,12 @@ def get_calorie(food, key):
         return f"Error: {response.status_code}, {response.text}"
 
 
-def calorie_count(weight, height, age):
-    return 10 * weight + 6.25 * height - 5 * age
+def calorie_count(weight, height, age, activity):
+    if activity <= 30:
+        cal = 10 * weight + 6.25 * height - 5 * age + 200
+    else:
+        cal = 10 * weight + 6.25 * height - 5 * age + 400
+    return cal
 
 
 def water_count(weight):

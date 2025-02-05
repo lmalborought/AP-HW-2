@@ -62,10 +62,21 @@ async def set_weight(message: Message, state: FSMContext):
     try:
         weight = int(message.text)
         await state.update_data(weight=weight)
+        await message.reply('Сколько минут активности у вас в день?')
+        await state.set_state(User.activity)
+    except ValueError:
+        await message.reply("Некоректно введен рост.")
+
+
+@router.message(User.activity)
+async def set_city(message: Message, state: FSMContext):
+    try:
+        activity = int(message.text)
+        await state.update_data(activity=activity)
         await message.reply('Введите город в котором вы находитесь.')
         await state.set_state(User.city)
     except ValueError:
-        await message.reply("Некоректно введен рост")
+        await message.reply("Некоректно введен уровень активности.")
 
 
 @router.message(User.city)
@@ -79,14 +90,15 @@ async def set_city(message: Message, state: FSMContext):
 async def set_calorie_goal(message: Message, state: FSMContext):
     calorie_goal = int(message.text)
     data = await state.get_data()
-    name, age, height, weight, city = data['name'], data['age'], data['height'], data['weight'], data['city']
+    name, age, height, weight, activity, city = data['name'], data['age'], data['height'], data['weight'], data['activity'], data['city']
     if calorie_goal == 0:
-        calorie_goal = calorie_count(weight, height, age)
+        calorie_goal = calorie_count(weight, height, age, activity)
     users[message.from_user.id] = {
         'name': name.title(),
         'age': age,
         'height': height,
         'weight': weight,
+        'activity': activity,
         'city': city.title(),
         'water_goal': water_count(weight),
         'calorie_goal': calorie_goal,
@@ -124,8 +136,7 @@ async def logging_water(message: Message):
             await message.reply('Пожалуйста введите количество воды через пробел')
         else:
             user['logged_water'] += int(log_water[1])
-            await message.reply(f"{user['name']}, вы выпили {log_water[1]} мл воды, осталось выпить"
-                                f" {user['water_goal'] - user['logged_water']} мл")
+            await message.reply(f"{user['name']}, вы выпили {log_water[1]} мл воды, осталось выпить {user['water_goal'] - user['logged_water']} мл")
     except ValueError:
         await message.reply("Попробуйте ввести в формате /log_water <количество>")
 
@@ -182,10 +193,21 @@ async def change_weight(message: Message, state: FSMContext):
     try:
         weight = int(message.text)
         await state.update_data(weight=weight)
+        await message.reply('Сколько минут активности у вас в день?')
+        await state.set_state(UserChange.activity)
+    except ValueError:
+        await message.reply("Некоректно введен вес.")
+
+
+@router.message(UserChange.activity)
+async def change_activity(message: Message, state: FSMContext):
+    try:
+        activity = int(message.text)
+        await state.update_data(activity=activity)
         await message.reply('Введите город в котором вы находитесь.')
         await state.set_state(UserChange.city)
     except ValueError:
-        await message.reply("Некоректно введен вес")
+        await message.reply("Некоректно введен уровень активности.")
 
 
 @router.message(UserChange.city)
@@ -200,11 +222,12 @@ async def change_city(message: Message, state: FSMContext):
     user = users.get(message.from_user.id)
     calorie_goal = int(message.text)
     data = await state.get_data()
-    age, weight, city = data['age'], data['weight'], data['city']
+    age, weight, activity, city = data['age'], data['weight'], data['activity'], data['city']
     if calorie_goal == 0:
-        calorie_goal = calorie_count(weight, user['height'], age)
+        calorie_goal = calorie_count(weight, user['height'], age, activity)
     user['age'] = age
     user['weight'] = weight
+    user['activity'] = activity
     user['city'] = city.title()
     user['water_goal'] = water_count(weight)
     user['calorie_goal'] = calorie_goal
@@ -233,7 +256,7 @@ async def get_advice(callback: CallbackQuery):
 async def get_advice(callback: CallbackQuery):
     await callback.answer('Вы выбрали Идеи упражнений')
     await callback.message.answer(f'🔹 Скакалка - за минуту можно сжечь 14-15 ккал.\n'
-                                  f'🔹  Приседания - можно потратить 53,6 ккал за 4 минуты.\n'
+                                  f'🔹 Приседания - можно потратить 53,6 ккал за 4 минуты.\n'
                                   f'🔹 Бёрпи - на одно бёрпи (отжимание с подпрыгванием) затрачивается 1,40 ккал\n'
                                   f'🔹 Плавание - плавание брассом сжигает порядка 750 килокалорий, а на спине — 600.\n'
                                   f'🔹 Велоспорт - можно сжечь ~600 килокалорий за часовую велосипедную поездку.\n'
@@ -285,8 +308,9 @@ async def log_workout(message: Message):
         user['burned_calories'] += count_calories
         water = (int(duration) // 30) * 200
         user['water_goal'] += water
-        await message.reply(f"💪 {user['name']}, вы выполнили тренировку {activity} {duration} минут - {count_calories} ккал.\n"
-                            f"Дополнительно: выпейте {water} мл воды.")
+        await message.reply(
+            f"💪 {user['name']}, вы выполнили тренировку {activity} {duration} минут - {count_calories} ккал.\n"
+            f"Дополнительно: выпейте {water} мл воды.")
     except ValueError:
         await message.reply('Попробуйте ввести еще раз а таком формате /log_workout <типтренировки> <время(мин)>')
 
